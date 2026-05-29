@@ -1,0 +1,11 @@
+# Java class files
+*.class
+
+# Runtime data files
+expenses.txt
+
+# IDE directories and files
+.idea/
+.vscode/
+*.iml
+*.class

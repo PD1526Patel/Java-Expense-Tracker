@@ -1,33 +1,46 @@
 import java.io.*;
 import java.util.*;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 
 public class Expense_Tracker {
     private static final String FILE_NAME = "expenses.txt";
     private static final List<Expense> expenses = new ArrayList<>();
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+    // ANSI Escape Codes for UI Styling
+    private static final String RESET = "\u001B[0m";
+    private static final String BOLD = "\u001B[1m";
+    private static final String RED = "\u001B[31m";
+    private static final String GREEN = "\u001B[32m";
+    private static final String YELLOW = "\u001B[33m";
+    private static final String BLUE = "\u001B[34m";
+    private static final String CYAN = "\u001B[36m";
+    private static final String PURPLE = "\u001B[35m";
 
     public static void main(String[] args) {
         loadExpenses(); // Load existing expenses from the file
-        Scanner scanner;
-        scanner = new Scanner(System.in);
+        Scanner scanner = new Scanner(System.in);
         int choice;
         do {
             saveExpenses();
-            System.out.println("\n********* Personal Expense Tracker *********");
-            System.out.println("1. Add Expense");
-            System.out.println("2. View Expenses");
-            System.out.println("3. Edit Expense");
-            System.out.println("4. Delete Expense");
-            System.out.println("5. Calculate Total Expenses");
-            System.out.println("6. View Summary Report");
-            System.out.println("7. Exit");
-            System.out.print("Enter your choice:- ");
+            System.out.println(BOLD + BLUE + "\n********* Personal Expense Tracker *********" + RESET);
+            System.out.println(CYAN + "1." + RESET + " Add Expense");
+            System.out.println(CYAN + "2." + RESET + " View Expenses");
+            System.out.println(CYAN + "3." + RESET + " Edit Expense");
+            System.out.println(CYAN + "4." + RESET + " Delete Expense");
+            System.out.println(CYAN + "5." + RESET + " Calculate Total Expenses");
+            System.out.println(CYAN + "6." + RESET + " View Summary Report");
+            System.out.println(CYAN + "7." + RESET + " Exit");
+            System.out.print(BOLD + "Enter your choice:- " + RESET);
 
             while (!scanner.hasNextInt()) {
-                System.out.print("Invalid input! Please Enter a number:-");
+                System.out.print(RED + "Invalid input! Please Enter a number:- " + RESET);
                 scanner.next();
             }
             choice = scanner.nextInt();
-            scanner.nextLine();
+            scanner.nextLine(); // consume newline
 
             switch (choice) {
                 case 1 -> addExpense(scanner);
@@ -38,26 +51,27 @@ public class Expense_Tracker {
                 case 6 -> viewSummaryReport(scanner);
                 case 7 -> {
                     saveExpenses(); // Save data before exiting
-                    System.out.println("Saved Data Successfully From File.");
+                    System.out.println(GREEN + BOLD + "Saved Data Successfully To File. Goodbye!" + RESET);
                 }
-                default -> System.out.println("Invalid choice! Please try again.");
+                default -> System.out.println(RED + "Invalid choice! Please try again." + RESET);
             }
         } while (choice != 7);
         scanner.close();
     }
 
     private static void addExpense(Scanner scanner) {
+        System.out.println(BOLD + BLUE + "\n--- Add New Expense ---" + RESET);
         System.out.print("Enter date (YYYY-MM-DD):- ");
         String date = scanner.nextLine();
         if (date_checker(date)) {
             System.out.print("Enter amount (Rs.):- ");
             double amount;
             while (!scanner.hasNextDouble()) {
-                System.out.println("Invalid input! Please Enter a valid amount.");
+                System.out.print(RED + "Invalid input! Please enter a valid amount:- " + RESET);
                 scanner.next();
             }
             amount = scanner.nextDouble();
-            scanner.nextLine();
+            scanner.nextLine(); // consume newline
 
             System.out.print("Enter category:- ");
             String category = scanner.nextLine();
@@ -70,100 +84,119 @@ public class Expense_Tracker {
 
             Expense expense = new Expense(date, amount, category, paymentMode, description);
             expenses.add(expense);
-            System.out.println("Expense added successfully!");
-            Collections.sort(expenses, (Expense o1, Expense o2) -> o1.getDate().compareTo(o2.getDate()));
-
+            System.out.println(GREEN + "Expense added successfully!" + RESET);
+            Collections.sort(expenses, Comparator.comparing(Expense::getDate));
         }
     }
 
     private static void view(Scanner scanner) {
-        System.out.println("\n---- CHOOSE ONE OF THE VIEW OPTION ----");
-        System.out.println("1. View All Expenses");
-        System.out.println("2. View Expenses By Specific Category");
-        System.out.println("3. View Expenses By Specific Date");
-        System.out.println("4. View Highest Expense");
-        System.out.println("5. View All Expenses Sorted By Amount");
-        System.out.print("Enter your choice:- ");
+        System.out.println(BOLD + BLUE + "\n---- CHOOSE ONE OF THE VIEW OPTIONS ----" + RESET);
+        System.out.println(CYAN + "1." + RESET + " View All Expenses");
+        System.out.println(CYAN + "2." + RESET + " View Expenses By Specific Category");
+        System.out.println(CYAN + "3." + RESET + " View Expenses By Specific Date");
+        System.out.println(CYAN + "4." + RESET + " View Highest Expense");
+        System.out.println(CYAN + "5." + RESET + " View All Expenses Sorted By Amount");
+        System.out.print(BOLD + "Enter your choice:- " + RESET);
         int choice;
         try {
+            if (!scanner.hasNextInt()) {
+                System.out.println(RED + "Invalid Input. Must be a number." + RESET);
+                scanner.next();
+                return;
+            }
             choice = scanner.nextInt();
-            scanner.nextLine();
+            scanner.nextLine(); // consume newline
             switch (choice) {
                 case 1 -> viewExpenses();
                 case 2 -> filterByCategory(scanner);
                 case 3 -> viewExpensesByDate(scanner);
                 case 4 -> viewHighestExpense();
                 case 5 -> sortExpensesByAmount();
-                default -> System.out.println("Invalid Choice");
+                default -> System.out.println(RED + "Invalid Choice" + RESET);
             }
         } catch (InputMismatchException e) {
-            System.out.println("Invalid Input");
+            System.out.println(RED + "Invalid Input" + RESET);
         }
     }
 
     private static void viewExpenses() {
         if (expenses.isEmpty()) {
-            System.out.println("No expenses recorded yet.");
+            System.out.println(YELLOW + "No expenses recorded yet." + RESET);
             return;
         }
-        System.out.println("\n=================================== Expense List ================================== ");
-        System.out.println("S. Date\t\t\tAmount\t\t\tCategory\tPayment Mode\tDescription");
+        System.out.println(BOLD + CYAN + "\n=================================== Expense List ==================================" + RESET);
+        printTableHeader();
         for (int i = 0; i < expenses.size(); i++) {
-            System.out.println((i + 1) + ". " + expenses.get(i));
+            expenses.get(i).printRow(i + 1);
         }
+        printTableFooter();
     }
 
     private static void filterByCategory(Scanner scanner) {
         System.out.print("Enter category to filter: ");
         String category = scanner.nextLine();
-        System.out.println("\n=== Expenses in Category: " + category + " ===");
+        System.out.println(BOLD + CYAN + "\n=== Expenses in Category: " + category + " ===" + RESET);
         boolean found = false;
-        System.out.println("Date\t\t\tAmount\t\t\tCategory\tPayment Mode\tDescription");
+        printTableHeader();
+        int rowNum = 1;
         for (Expense e : expenses) {
             if (e.getCategory().equalsIgnoreCase(category)) {
-                System.out.println(e);
+                e.printRow(rowNum++);
                 found = true;
-
             }
         }
+        printTableFooter();
         if (!found) {
-            System.out.println("No expenses found in this category.");
+            System.out.println(YELLOW + "No expenses found in this category." + RESET);
         }
     }
 
     private static void viewExpensesByDate(Scanner scanner) {
         System.out.print("Enter date (YYYY-MM-DD) to view expenses: ");
         String date = scanner.nextLine();
-        System.out.println("Date\t\t\tAmount\t\t\tCategory\tPayment Mode\tDescription");
         if (date_checker(date)) {
+            System.out.println(BOLD + CYAN + "\n=== Expenses on Date: " + date + " ===" + RESET);
             boolean found = false;
+            printTableHeader();
+            int rowNum = 1;
             for (Expense expense : expenses) {
                 if (expense.getDate().equals(date)) {
-                    System.out.println(expense);
+                    expense.printRow(rowNum++);
                     found = true;
                 }
             }
+            printTableFooter();
             if (!found) {
-                System.out.println("No expenses found for this date.");
+                System.out.println(YELLOW + "No expenses found for this date." + RESET);
             }
         }
     }
 
     private static void viewHighestExpense() {
         if (expenses.isEmpty()) {
-            System.out.println("No expenses to display.");
+            System.out.println(YELLOW + "No expenses to display." + RESET);
         } else {
-            System.out.println("                  Date\t\t\tAmount\t\t\tCategory\tPayment Mode\tDescription");
-            Expense highest = Collections.max(expenses, Comparator.comparingDouble(exp -> exp.getAmount()));
-            System.out.println("Highest expense:- " + highest);
+            System.out.println(BOLD + CYAN + "\n================================= Highest Expense =================================" + RESET);
+            Expense highest = Collections.max(expenses, Comparator.comparingDouble(Expense::getAmount));
+            printTableHeader();
+            highest.printRow(1);
+            printTableFooter();
         }
     }
 
     private static void sortExpensesByAmount() {
-        Collections.sort(expenses, Comparator.comparingDouble(o1 -> o1.getAmount()));
-        System.out.println("Expenses sorted by amount.");
-        viewExpenses();
-        Collections.sort(expenses, (Expense o1, Expense o2) -> o1.getDate().compareTo(o2.getDate()));
+        if (expenses.isEmpty()) {
+            System.out.println(YELLOW + "No expenses recorded yet." + RESET);
+            return;
+        }
+        List<Expense> sorted = new ArrayList<>(expenses);
+        sorted.sort(Comparator.comparingDouble(Expense::getAmount));
+        System.out.println(BOLD + CYAN + "\n============================= Expenses Sorted By Amount =============================" + RESET);
+        printTableHeader();
+        for (int i = 0; i < sorted.size(); i++) {
+            sorted.get(i).printRow(i + 1);
+        }
+        printTableFooter();
     }
 
     private static void calculateTotal() {
@@ -171,151 +204,141 @@ public class Expense_Tracker {
         for (Expense expense : expenses) {
             total += expense.getAmount();
         }
-        System.out.println("Total Expenses:- Rs." + total);
+        System.out.println(BOLD + PURPLE + "Total Expenses:- Rs. " + String.format("%.2f", total) + RESET);
     }
 
     private static void editExpense(Scanner scanner) {
+        if (expenses.isEmpty()) {
+            System.out.println(YELLOW + "No expenses recorded yet to edit." + RESET);
+            return;
+        }
         viewExpenses();
         try {
             System.out.print("Enter the number of the expense to edit: ");
+            if (!scanner.hasNextInt()) {
+                System.out.println(RED + "Invalid number selection!" + RESET);
+                scanner.next();
+                return;
+            }
             int index = scanner.nextInt() - 1;
-            scanner.nextLine();
+            scanner.nextLine(); // consume newline
             if (index < 0 || index >= expenses.size()) {
-                System.out.println("Invalid selection!");
+                System.out.println(RED + "Invalid selection!" + RESET);
                 return;
             }
             Expense selectedExpense = expenses.get(index);
-            System.out.print("Enter new date (YYYY-MM-DD) :- " + selectedExpense.getDate() + "): ");
+            System.out.print("Enter new date (YYYY-MM-DD) or press Enter to keep (" + selectedExpense.getDate() + "): ");
             String newDate = scanner.nextLine();
-            if (date_checker(newDate)) {
-                System.out.print(
-                        "Enter new amount or press Enter to keep existing (Rs." + selectedExpense.getAmount() + "): ");
+            
+            boolean dateValid = true;
+            if (!newDate.isEmpty()) {
+                dateValid = date_checker(newDate);
+            }
+
+            if (dateValid) {
+                System.out.print("Enter new amount or press Enter to keep (Rs. " + selectedExpense.getAmount() + "): ");
                 String amountInput = scanner.nextLine();
-                System.out.print(
-                        "Enter new category or press Enter to keep existing (" + selectedExpense.getCategory() + "): ");
+                
+                System.out.print("Enter new category or press Enter to keep (" + selectedExpense.getCategory() + "): ");
                 String newCategory = scanner.nextLine();
-                System.out.print("Enter new payment mode or press Enter to keep existing ("
-                        + selectedExpense.getPaymentMode() + "): ");
+                
+                System.out.print("Enter new payment mode or press Enter to keep (" + selectedExpense.getPaymentMode() + "): ");
                 String newPaymentMode = scanner.nextLine();
-                System.out.print("Enter new description or press Enter to keep existing ("
-                        + selectedExpense.getDescription() + "): ");
+                
+                System.out.print("Enter new description or press Enter to keep (" + selectedExpense.getDescription() + "): ");
                 String newDescription = scanner.nextLine();
 
                 if (!newDate.isEmpty())
                     selectedExpense.setDate(newDate);
-                if (!amountInput.isEmpty())
-                    selectedExpense.setAmount(Double.parseDouble(amountInput));
+                
+                if (!amountInput.isEmpty()) {
+                    try {
+                        selectedExpense.setAmount(Double.parseDouble(amountInput));
+                    } catch (NumberFormatException e) {
+                        System.out.println(YELLOW + "Invalid amount format! Keeping existing amount." + RESET);
+                    }
+                }
+                
                 if (!newCategory.isEmpty())
                     selectedExpense.setCategory(newCategory);
+                
                 if (!newPaymentMode.isEmpty())
                     selectedExpense.setPaymentMode(newPaymentMode);
+                
                 if (!newDescription.isEmpty())
                     selectedExpense.setDescription(newDescription);
-                System.out.println("Expense updated successfully!");
+                
+                System.out.println(GREEN + "Expense updated successfully!" + RESET);
+                Collections.sort(expenses, Comparator.comparing(Expense::getDate));
             }
-        } catch (InputMismatchException e) {
-            System.out.println("Error In Edit Expense Occur");
+        } catch (Exception e) {
+            System.out.println(RED + "Error occurred in editing expense: " + e.getMessage() + RESET);
         }
     }
 
     private static void deleteExpense(Scanner scanner) {
+        if (expenses.isEmpty()) {
+            System.out.println(YELLOW + "No expenses recorded yet to delete." + RESET);
+            return;
+        }
         viewExpenses();
         try {
             System.out.print("Enter the number of the expense to delete: ");
+            if (!scanner.hasNextInt()) {
+                System.out.println(RED + "Invalid number selection!" + RESET);
+                scanner.next();
+                return;
+            }
             int index = scanner.nextInt() - 1;
-            scanner.nextLine();
+            scanner.nextLine(); // consume newline
             if (index < 0 || index >= expenses.size()) {
-                System.out.println("Invalid selection!");
+                System.out.println(RED + "Invalid selection!" + RESET);
                 return;
             }
             expenses.remove(index);
-            System.out.println("Expense deleted successfully!");
-        } catch (InputMismatchException e) {
-            System.out.println("Error In Deleting Expense");
+            System.out.println(GREEN + "Expense deleted successfully!" + RESET);
+        } catch (Exception e) {
+            System.out.println(RED + "Error occurred in deleting expense." + RESET);
         }
     }
 
     private static boolean date_checker(String date) {
-        if (date.length() < 10 || date.length() > 10) {
-            System.out.println("Incorrect Date Format");
-            return false;
-        } else if (date.charAt(4) != '-' || date.charAt(7) != '-') {
-            System.out.println("Incorrect Date Format:");
-            return false;
-        }
-        String[] parts = date.split("-");
-        int year, month, day;
         try {
-            year = Integer.parseInt(parts[0]);
-            month = Integer.parseInt(parts[1]);
-            day = Integer.parseInt(parts[2]);
-            if (month == 2) {
-                if (year % 4 == 0) {
-                    if (day > 0 && day < 30)
-                        return true;
-                    else {
-                        System.out.println("Incorrect Date");
-                        return false;
-                    }
-                }
-                if (day > 0 && day < 29)
-                    return true;
-                else {
-                    System.out.println("Incorrect Date");
-                    return false;
-                }
-            }
-            if (month == 1 || month == 3 || month == 5 || month == 7 || month == 8 || month == 10 || month == 12) {
-                if (day > 0 && day < 32)
-                    return true;
-                else {
-                    System.out.println("Incorrect Date");
-                    return false;
-                }
-            }
-            if (month == 4 || month == 6 || month == 9 || month == 11) {
-                if (day > 0 && day < 31)
-                    return true;
-                else {
-                    System.out.println("Incorrect Date");
-                    return false;
-                }
-            }
-            return false;
-        } catch (NumberFormatException e) {
-            System.out.println("Invalid Date");
+            LocalDate.parse(date, DATE_FORMATTER);
+            return true;
+        } catch (DateTimeParseException e) {
+            System.out.println(RED + "Incorrect Date or Date Format (Please use YYYY-MM-DD)." + RESET);
             return false;
         }
-
     }
 
     private static void viewSummaryReport(Scanner scanner) {
-        System.out.println("\n=== Summary Report ===");
-        System.out.println("1. Monthly Summary");
-        System.out.println("2. Yearly Summary");
-        System.out.print("Enter your choice: ");
+        System.out.println(BOLD + BLUE + "\n=== Summary Report ===" + RESET);
+        System.out.println(CYAN + "1." + RESET + " Monthly Summary");
+        System.out.println(CYAN + "2." + RESET + " Yearly Summary");
+        System.out.print(BOLD + "Enter your choice: " + RESET);
 
         while (!scanner.hasNextInt()) {
-            System.out.println("Invalid input! Please enter a number.");
+            System.out.print(RED + "Invalid input! Please enter a number:- " + RESET);
             scanner.next();
         }
         int choice = scanner.nextInt();
-        scanner.nextLine();
+        scanner.nextLine(); // consume newline
 
         switch (choice) {
             case 1 -> viewMonthlySummary();
             case 2 -> viewYearlySummary();
-            default -> System.out.println("Invalid choice! Please try again.");
+            default -> System.out.println(RED + "Invalid choice! Please try again." + RESET);
         }
     }
 
     private static void viewMonthlySummary() {
         if (expenses.isEmpty()) {
-            System.out.println("No expenses recorded yet.");
+            System.out.println(YELLOW + "No expenses recorded yet." + RESET);
             return;
         }
 
-        System.out.println("\n========= Monthly Summary =========");
+        System.out.println(BOLD + CYAN + "\n========= Monthly Summary =========" + RESET);
         String currentMonth = "";
         double totalAmount = 0.0;
 
@@ -323,7 +346,7 @@ public class Expense_Tracker {
             String month = e.getDate().substring(0, 7); // YYYY-MM
             if (!month.equals(currentMonth)) {
                 if (!currentMonth.isEmpty()) {
-                    System.out.println(currentMonth + ": Rs." + totalAmount);
+                    System.out.printf("%s: Rs. %.2f%n", currentMonth, totalAmount);
                 }
                 currentMonth = month;
                 totalAmount = 0.0;
@@ -332,17 +355,17 @@ public class Expense_Tracker {
         }
 
         if (!currentMonth.isEmpty()) {
-            System.out.println(currentMonth + ": Rs." + totalAmount);
+            System.out.printf("%s: Rs. %.2f%n", currentMonth, totalAmount);
         }
     }
 
     private static void viewYearlySummary() {
         if (expenses.isEmpty()) {
-            System.out.println("No expenses recorded yet.");
+            System.out.println(YELLOW + "No expenses recorded yet." + RESET);
             return;
         }
 
-        System.out.println("\n========= Yearly Summary =========");
+        System.out.println(BOLD + CYAN + "\n========= Yearly Summary =========" + RESET);
         String currentYear = "";
         double totalAmount = 0.0;
 
@@ -350,7 +373,7 @@ public class Expense_Tracker {
             String year = e.getDate().substring(0, 4); // YYYY
             if (!year.equals(currentYear)) {
                 if (!currentYear.isEmpty()) {
-                    System.out.println(currentYear + ": Rs." + totalAmount);
+                    System.out.printf("%s: Rs. %.2f%n", currentYear, totalAmount);
                 }
                 currentYear = year;
                 totalAmount = 0.0;
@@ -359,7 +382,7 @@ public class Expense_Tracker {
         }
 
         if (!currentYear.isEmpty()) {
-            System.out.println(currentYear + ": Rs." + totalAmount);
+            System.out.printf("%s: Rs. %.2f%n", currentYear, totalAmount);
         }
     }
 
@@ -370,7 +393,7 @@ public class Expense_Tracker {
                 writer.newLine();
             }
         } catch (IOException e) {
-            System.out.println("Error saving expenses: " + e.getMessage());
+            System.out.println(RED + "Error saving expenses: " + e.getMessage() + RESET);
         }
     }
 
@@ -379,19 +402,40 @@ public class Expense_Tracker {
         if (!file.exists())
             return;
 
-        try (BufferedReader reader = new BufferedReader(new FileReader(FILE_NAME))) {
+        expenses.clear();
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
             String line;
             while ((line = reader.readLine()) != null) {
+                if (line.trim().isEmpty()) continue;
                 try {
                     Expense expense = Expense.fromFileString(line);
                     expenses.add(expense);
                 } catch (Exception e) {
-                    System.out.println("Skipping invalid data: " + line);
+                    System.out.println(YELLOW + "Skipping invalid data line: " + line + RESET);
                 }
             }
+            Collections.sort(expenses, Comparator.comparing(Expense::getDate));
         } catch (IOException e) {
-            System.out.println("Error loading expenses: " + e.getMessage());
+            System.out.println(RED + "Error loading expenses: " + e.getMessage() + RESET);
         }
+    }
+
+    // Helper methods for table formatting
+    private static void printTableHeader() {
+        System.out.println(CYAN + "+-----+------------+------------+--------------------+--------------------+--------------------------------+" + RESET);
+        System.out.printf(CYAN + "| %-3s | %-10s | %-10s | %-18s | %-18s | %-30s |%n" + RESET,
+                "No.", "Date", "Amount", "Category", "Payment Mode", "Description");
+        System.out.println(CYAN + "+-----+------------+------------+--------------------+--------------------+--------------------------------+" + RESET);
+    }
+
+    private static void printTableFooter() {
+        System.out.println(CYAN + "+-----+------------+------------+--------------------+--------------------+--------------------------------+" + RESET);
+    }
+
+    public static String truncate(String text, int maxLength) {
+        if (text == null) return "";
+        if (text.length() <= maxLength) return text;
+        return text.substring(0, maxLength - 3) + "...";
     }
 }
 
@@ -450,17 +494,63 @@ class Expense {
         this.description = description;
     }
 
+    // Print a single aligned row for ASCII table
+    public void printRow(int index) {
+        System.out.printf("| %-3d | %-10s | Rs.%-7.2f | %-18s | %-18s | %-30s |%n",
+                index, date, amount, 
+                Expense_Tracker.truncate(category, 18), 
+                Expense_Tracker.truncate(paymentMode, 18), 
+                Expense_Tracker.truncate(description, 30));
+    }
+
     @Override
     public String toString() {
         return date + "\t\tRS." + amount + "\t\t" + category + "\t\t" + paymentMode + "\t\t" + description;
     }
 
+    // RFC 4180 compliant CSV formatting
     public String toFileString() {
-        return date + "," + amount + "," + category + "," + paymentMode + "," + description;
+        return date + "," + amount + "," + escapeCSV(category) + "," + escapeCSV(paymentMode) + "," + escapeCSV(description);
     }
 
+    private static String escapeCSV(String value) {
+        if (value == null) return "";
+        if (value.contains(",") || value.contains("\"") || value.contains("\n") || value.contains("\r")) {
+            return "\"" + value.replace("\"", "\"\"") + "\"";
+        }
+        return value;
+    }
+
+    // RFC 4180 compliant CSV parser
     public static Expense fromFileString(String fileString) {
-        String[] parts = fileString.split(",");
-        return new Expense(parts[0], Double.parseDouble(parts[1]), parts[2], parts[3], parts[4]);
+        List<String> parts = parseCSV(fileString);
+        if (parts.size() < 5) {
+            throw new IllegalArgumentException("Invalid CSV row");
+        }
+        return new Expense(parts.get(0), Double.parseDouble(parts.get(1)), parts.get(2), parts.get(3), parts.get(4));
+    }
+
+    private static List<String> parseCSV(String line) {
+        List<String> result = new ArrayList<>();
+        boolean inQuotes = false;
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < line.length(); i++) {
+            char c = line.charAt(i);
+            if (c == '\"') {
+                if (inQuotes && i + 1 < line.length() && line.charAt(i + 1) == '\"') {
+                    sb.append('\"'); // escaped quote
+                    i++;
+                } else {
+                    inQuotes = !inQuotes; // toggle quote state
+                }
+            } else if (c == ',' && !inQuotes) {
+                result.add(sb.toString());
+                sb.setLength(0);
+            } else {
+                sb.append(c);
+            }
+        }
+        result.add(sb.toString());
+        return result;
     }
 }
